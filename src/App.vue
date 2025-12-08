@@ -1,5 +1,6 @@
 <script setup>
 import {ref, onMounted, onUnmounted} from 'vue'
+import '../public/mjpegcanvas.min.js';
 
 const ros = ref(null)
 const rosbridge_address = ref('')
@@ -12,7 +13,7 @@ const isDragging = ref(false)
 const dragZoneRect = ref(null) 
 const position = ref({x:0, y:0, z:0})
 
-const connect_robot = () => {   //ws://192.168.195.17:9090
+const connect_robot = () => {   //ws://192.168.195.17:9090 // ws://192.168.0.39:9090
   if(!rosbridge_address.value)    
   {
     alert("ip cannot empty")
@@ -37,6 +38,8 @@ const connect_robot = () => {   //ws://192.168.195.17:9090
         z: message.pose.pose.position.z 
       }
     })
+    // Initialize camera stream after robot connects
+    setCamera()
   })
 
 
@@ -50,6 +53,7 @@ const connect_robot = () => {   //ws://192.168.195.17:9090
   {
     console.log('closed')
     connected.value = false
+    document.getElementById('divCamera').innerHTML = ''
   })
 }
 
@@ -128,6 +132,33 @@ const send_velocity_command = (linear_x, angular_z) => {
         }
 
   topic.publish(twist)
+}
+
+const setCamera = () => {
+  if(!rosbridge_address.value || rosbridge_address.value==''){
+    alert("Please enter the robot IP address first")
+    return
+  }
+  
+  // Extract IP from rosbridge address
+  let robotIP = rosbridge_address.value
+  try {
+    if (robotIP.includes('//')) {
+      robotIP = robotIP.split('//')[1].split(':')[0]
+    }
+  } catch (e) {
+    alert("Invalid IP address format. Expected: ws://192.168.x.x:9090")
+    return
+  }
+  console.log("robotIP", robotIP)
+  let viewer = new MJPEGCANVAS.Viewer({
+    divID: 'divCamera',
+    host: robotIP,
+    port: '8080',
+    width: 640,
+    height: 480,
+    topic: '/image_raw'
+  });
 }
 
 const startDrag = (e) => {
@@ -240,6 +271,11 @@ onUnmounted(() => {
     <p>Y: {{ position.y.toFixed(2) }}</p>
     <p>Z: {{ position.z.toFixed(2) }}</p>
   </div>
+  <div>
+    <div class="col-md-6 col-sm-6 text-center">
+      <div id="divCamera"></div>
+    </div>
+  </div>
 </main>
 </template>
 
@@ -320,5 +356,23 @@ onUnmounted(() => {
   transition: none;
   transform: translate(-50%, -50%);
   pointer-events: none;
+}
+
+#divCamera {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 30px;
+  margin-bottom: 30px;
+  padding: 10px;
+  background: #f0f0f0;
+  border-radius: 10px;
+  min-height: 480px;
+}
+
+#divCamera canvas {
+  max-width: 100%;
+  height: auto;
+  border-radius: 5px;
 }
 </style>
