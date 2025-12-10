@@ -161,6 +161,25 @@ const setCamera = () => {
   });
 }
 
+const call_service = () => {
+  console.log("call service")
+  let service_response = ''
+  let service = new ROSLIB.Service({
+    ros: ros.value,
+    name: '/test_srv',
+    serviceType: 'test_srv/srv/TestSrv',
+  })
+
+  let request = new ROSLIB.ServiceRequest({
+    "message": {"data": "fuck you"}
+  })
+
+  service.callService(request, (result) => {
+    service_response = JSON.stringify(result)
+    console.log("service_response", service_response)
+  }, (error) => {console.log("error", error)})
+}
+
 const startDrag = (e) => {
   isDragging.value = true
   dragZoneRect.value = document.getElementById('dragstartzone').getBoundingClientRect()
@@ -275,6 +294,9 @@ onUnmounted(() => {
     <div class="col-md-6 col-sm-6 text-center">
       <div id="divCamera"></div>
     </div>
+  </div>
+  <div style="position: relative; width: 100px; height: 100px; margin: 0 auto;">
+    <button @click="call_service">call service</button>
   </div>
 </main>
 </template>
